@@ -15,7 +15,7 @@ Ideal para quem quer manter suas compras organizadas de forma rápida e intuitiv
 
 ---
 
-## 🖼 Preview
+## Preview
 
 *(Adicionarei prints aqui posteriormente)*
 
