@@ -9,7 +9,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   Hive.registerAdapter(ProdutoAdapter());
-  await Hive.openBox<Produto>('produtos');
+  await Hive.openBox<String>('listas'); // armazena nomes de listas
+  
+  var listasBox = Hive.box<String>('listas');
+  if (listasBox.isEmpty) listasBox.add("Lista Principal");
+  for (var nome in listasBox.values) {
+    await Hive.openBox<Produto>('produtos_$nome');
+  }
   runApp(const ListaComprasApp());
 }
 
@@ -33,11 +39,13 @@ class ListaComprasPage extends StatefulWidget {
 }
 
 class _ListaComprasPageState extends State<ListaComprasPage> {
-  final Box<Produto> produtosBox = Hive.box<Produto>('produtos');
   final _formKey = GlobalKey<FormState>();
   String nome = '';
   int quantidade = 1;
   double preco = 0.0;
+  String listaAtual = Hive.box<String>('listas').values.first;
+
+  Box<Produto> get produtosBox => Hive.box<Produto>('produtos_$listaAtual');
 
   final frasesPatos = [
     'Quack, quack! Vamos às compras!',
@@ -88,7 +96,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                 TextFormField(
                   initialValue: preco.toStringAsFixed(2),
                   decoration: const InputDecoration(labelText: 'Preço'),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   validator: (value) => value!.isEmpty ? 'Informe o preço' : null,
                   onSaved: (value) => preco = double.tryParse(value!) ?? 0.0,
                 ),
@@ -112,15 +120,15 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                   setState(() {});
                 }
               },
-              child: Text('Salvar'),
+              child: const Text('Salvar'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancelar'),
+              child: const Text('Cancelar'),
             ),
           ],
         );
-      }
+      },
     );
   }
 
@@ -128,7 +136,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
     produtosBox.clear();
     setState(() {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lista de compras limpa!')),
+        const SnackBar(content: Text('Lista de compras limpa!')),
       );
     });
   }
@@ -144,11 +152,11 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Center(
-                child: pw.Text("Lista de Compras",
+                child: pw.Text(listaAtual,
                     style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
               ),
               pw.Center(
-                child: pw.Text(frase, style: pw.TextStyle(fontSize: 12)),
+                child: pw.Text(frase, style: const pw.TextStyle(fontSize: 12)),
               ),
               pw.SizedBox(height: 10),
               pw.Divider(),
@@ -161,7 +169,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
               ),
               pw.SizedBox(height: 10),
               pw.Text("Emitido em: ${DateTime.now()}",
-                  style: pw.TextStyle(fontSize: 10)),
+                  style: const pw.TextStyle(fontSize: 10)),
             ],
           );
         },
@@ -171,6 +179,39 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
     await Printing.layoutPdf(onLayout: (format) => pdf.save());
   }
 
+  void adicionarLista() async {
+    String novaLista = '';
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Nova Lista"),
+        content: TextField(
+          decoration: const InputDecoration(labelText: "Nome da lista"),
+          onChanged: (value) => novaLista = value,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              if (novaLista.isNotEmpty) {
+                Hive.box<String>('listas').add(novaLista);
+                Hive.openBox<Produto>('produtos_$novaLista');
+                setState(() {
+                  listaAtual = novaLista;
+                });
+              }
+              Navigator.pop(context);
+            },
+            child: const Text("Adicionar"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancelar"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     double total = produtosBox.values.fold(
@@ -178,23 +219,66 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 236, 214, 240),
+        backgroundColor: const Color.fromARGB(255, 236, 214, 240),
         title: Text(
-          'Lista de Compras', 
-          style: TextStyle(color: Color.fromARGB(255, 150, 23, 175)),
+          listaAtual,
+          style: const TextStyle(color: Color.fromARGB(255, 150, 23, 175)),
         ),
         actions: [
           IconButton(
-            color: Color.fromARGB(255, 150, 23, 175),
-            icon: Icon(Icons.picture_as_pdf),
+            color: const Color.fromARGB(255, 150, 23, 175),
+            icon: const Icon(Icons.picture_as_pdf),
             onPressed: gerarPDF,
           ),
           IconButton(
-            color: Color.fromARGB(255, 150, 23, 175),
-            icon: Icon(Icons.delete_forever),
+            color: const Color.fromARGB(255, 150, 23, 175),
+            icon: const Icon(Icons.delete_forever),
             onPressed: _limparLista,
           ),
         ],
+      ),
+      drawer: Drawer(
+        width: 250,
+        child: Column(
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Color.fromARGB(255, 236, 214, 240)),
+              padding: EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+              child: Center(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Color.fromARGB(255, 150, 23, 175)),
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: const Text("Adicionar nova lista",
+                      style: TextStyle(color: Colors.white)),
+                  onPressed: adicionarLista,
+                ),
+              ),
+            ),
+            Expanded(
+              child: ValueListenableBuilder(
+                valueListenable: Hive.box<String>('listas').listenable(),
+                builder: (context, Box<String> listasBox, _) {
+                  return ListView.builder(
+                    itemCount: listasBox.length,
+                    itemBuilder: (context, index) {
+                      String nomeLista = listasBox.getAt(index)!;
+                      return ListTile(
+                        title: Text(nomeLista),
+                        onTap: () {
+                          setState(() {
+                            listaAtual = nomeLista;
+                          });
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
       body: Stack(
         children: [
@@ -208,23 +292,34 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
             valueListenable: produtosBox.listenable(),
             builder: (context, Box<Produto> box, _) {
               if (box.isEmpty) {
-                return Center(child: Text('Nenhum produto adicionado.'));
+                return const Center(child: Text('Nenhum produto adicionado.'));
               }
               return ListView.builder(
                 itemCount: box.length,
                 itemBuilder: (context, index) {
                   final produto = box.getAt(index)!;
                   return Dismissible(
-                    key: Key(box.keys.toString()),
-                    background: Container(color: Colors.red, alignment: Alignment.centerLeft, padding: const EdgeInsets.only(left: 20), child: const Icon(Icons.delete, color: Colors.white)),
-                    secondaryBackground: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), child: const Icon(Icons.delete, color: Colors.white)),
-                    onDismissed: (_) => {box.deleteAt(index), setState(() {})},
+                    key: Key(produto.nome + index.toString()),
+                    background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(left: 20),
+                        child: const Icon(Icons.delete, color: Colors.white)),
+                    secondaryBackground: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        child: const Icon(Icons.delete, color: Colors.white)),
+                    onDismissed: (_) =>
+                        {box.deleteAt(index), setState(() {})},
                     child: ListTile(
-                      textColor: Color.fromARGB(255, 150, 23, 175),
+                      textColor: const Color.fromARGB(255, 150, 23, 175),
                       title: Text(produto.nome),
-                      subtitle: Text("${produto.quantidade}un x  R\$ ${produto.preco.toStringAsFixed(2)}"),
+                      subtitle: Text(
+                          "${produto.quantidade}un x  R\$ ${produto.preco.toStringAsFixed(2)}"),
                       trailing: IconButton(
-                        icon: Icon(Icons.edit, color: Color.fromARGB(255, 150, 23, 175)),
+                        icon: const Icon(Icons.edit,
+                            color: Color.fromARGB(255, 150, 23, 175)),
                         onPressed: () => adicionarProduto(produto),
                       ),
                     ),
@@ -232,14 +327,14 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                 },
               );
             },
-          ),  
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => adicionarProduto(),
-        splashColor: Color.fromARGB(255, 150, 23, 175),
-        backgroundColor: Color.fromARGB(255, 236, 214, 240),
-        child: Icon(Icons.add),
+        splashColor: const Color.fromARGB(255, 150, 23, 175),
+        backgroundColor: const Color.fromARGB(255, 236, 214, 240),
+        child: const Icon(Icons.add),
       ),
       bottomNavigationBar: BottomAppBar(
         color: const Color.fromARGB(255, 236, 214, 240),
@@ -247,7 +342,10 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
           padding: const EdgeInsets.all(16),
           child: Text(
             'Total: R\$ ${total.toStringAsFixed(2)}',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 150, 23, 175)),
+            style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(255, 150, 23, 175)),
           ),
         ),
       ),
