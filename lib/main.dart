@@ -191,6 +191,56 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
     );
   }
 
+  Future<void> confirmarApagarLista(String nome) async {
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Apagar "$nome"?'),
+        content: const Text('Essa ação não pode ser desfeita.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Apagar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmou == true) {
+      await apagarLista(nome);
+    }
+  }
+
+  Future<void> _confirmarLimpeza() async {
+    bool? confirmacao = await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Limpar Lista'),
+          content: const Text('Você tem certeza que deseja limpar a lista de compras?'),
+          actions: [
+            TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Limpar Lista'),
+          ),
+          ],
+        );
+      },
+    );
+
+    if (confirmacao == true) {
+      _limparLista();
+    }
+  }
+
   void gerarPDF() async {
     final pdf = pw.Document();
     final frase = frasesPatos[Random().nextInt(frasesPatos.length)];
@@ -290,7 +340,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
           IconButton(
             color: const Color.fromARGB(255, 150, 23, 175),
             icon: const Icon(Icons.delete_forever),
-            onPressed: _limparLista,
+            onPressed: _confirmarLimpeza,
           ),
         ],
       ),
@@ -330,8 +380,8 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                         },
                         trailing: IconButton(
                           color: const Color.fromARGB(255, 211, 156, 223),
-                          icon: const Icon(Icons.delete_forever),
-                          onPressed: () => apagarLista(nomeLista),
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => confirmarApagarLista(nomeLista),
                         ),
                       );
                     },
