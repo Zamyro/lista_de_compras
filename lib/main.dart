@@ -9,7 +9,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   Hive.registerAdapter(ProdutoAdapter());
-  await Hive.openBox<String>('listas'); // armazena nomes de listas
+  await Hive.openBox<String>('listas');
   
   var listasBox = Hive.box<String>('listas');
   if (listasBox.isEmpty) listasBox.add("Lista Principal");
@@ -43,9 +43,8 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
   String nome = '';
   int quantidade = 1;
   double preco = 0.0;
-  String listaAtual = Hive.box<String>('listas').values.first;
-
-  Box<Produto> get produtosBox => Hive.box<Produto>('produtos_$listaAtual');
+  String? listaAtual;
+  Box<Produto>? produtosBox;
 
   final frasesPatos = [
     'Quack, quack! Vamos às compras!',
@@ -59,6 +58,22 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
     'Pato e compras: combinação perfeita!'
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    abrirBoxes();
+  }
+
+  Future<void> abrirBoxes() async {
+    var listasBox = Hive.box<String>('listas');
+    listaAtual = listasBox.values.first;
+
+    await Hive.openBox<Produto>('produtos_$listaAtual');
+    produtosBox = Hive.box<Produto>('produtos_$listaAtual');
+
+    setState(() {});
+  }
+  
   void adicionarProduto([Produto? produto]) {
     showDialog(
       context: context,
@@ -109,12 +124,12 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
                   if (produto == null) {
-                    produtosBox.add(Produto(nome: nome, quantidade: quantidade, preco: preco));
+                    produtosBox?.add(Produto(nome: nome, quantidade: quantidade, preco: preco));
                   } else {
                     produto.nome = nome;
                     produto.quantidade = quantidade;
                     produto.preco = preco;
-                    produtosBox.putAt(produtosBox.values.toList().indexOf(produto), produto);
+                    produtosBox?.putAt(produtosBox!.values.toList().indexOf(produto), produto);
                   }
                   Navigator.pop(context);
                   setState(() {});
@@ -133,12 +148,47 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
   }
 
   void _limparLista() {
-    produtosBox.clear();
+    produtosBox?.clear();
     setState(() {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lista de compras limpa!')),
       );
     });
+  }
+
+  Future<void> apagarLista(String nome) async {
+    var listasBox = Hive.box<String>('listas');
+
+    if (listasBox.length == 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Você não pode apagar a última lista!')),
+      );
+      return;
+    }
+
+    int index = listasBox.values.toList().indexOf(nome);
+    if (index != -1) {
+      await listasBox.deleteAt(index);
+    }
+
+    await Hive.deleteBoxFromDisk('produtos_$nome');
+
+    if (listaAtual == nome) {
+      if (listasBox.isNotEmpty) {
+        listaAtual = listasBox.values.first;
+        await Hive.openBox<Produto>('produtos_$listaAtual');
+        produtosBox = Hive.box<Produto>('produtos_$listaAtual');
+      } else {
+        listaAtual = null;
+        produtosBox = null;
+      }
+    }
+
+    setState(() {});
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Lista $nome apagada!')),
+    );
   }
 
   void gerarPDF() async {
@@ -152,7 +202,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Center(
-                child: pw.Text(listaAtual,
+                child: pw.Text(listaAtual ?? 'Lista de Compras',
                     style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
               ),
               pw.Center(
@@ -160,11 +210,11 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
               ),
               pw.SizedBox(height: 10),
               pw.Divider(),
-              ...produtosBox.values.map((p) => pw.Text(
+              ...produtosBox!.values.map((p) => pw.Text(
                   "${p.quantidade}x ${p.nome} - R\$ ${(p.preco * p.quantidade).toStringAsFixed(2)}")),
               pw.Divider(),
               pw.Text(
-                "Total: R\$ ${produtosBox.values.fold(0.0, (sum, p) => sum + p.preco * p.quantidade).toStringAsFixed(2)}",
+                "Total: R\$ ${produtosBox?.values.fold(0.0, (sum, p) => sum + p.preco * p.quantidade).toStringAsFixed(2)}",
                 style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
               ),
               pw.SizedBox(height: 10),
@@ -214,14 +264,21 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
 
   @override
   Widget build(BuildContext context) {
-    double total = produtosBox.values.fold(
+    
+    if (produtosBox == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    double total = produtosBox!.values.fold(
       0.0, (sum, p) => sum + p.preco * p.quantidade);
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 236, 214, 240),
         title: Text(
-          listaAtual,
+          listaAtual ?? 'Lista de Compras',
           style: const TextStyle(color: Color.fromARGB(255, 150, 23, 175)),
         ),
         actions: [
@@ -271,6 +328,11 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                           });
                           Navigator.pop(context);
                         },
+                        trailing: IconButton(
+                          color: const Color.fromARGB(255, 211, 156, 223),
+                          icon: const Icon(Icons.delete_forever),
+                          onPressed: () => apagarLista(nomeLista),
+                        ),
                       );
                     },
                   );
@@ -289,7 +351,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
             ),
           ),
           ValueListenableBuilder(
-            valueListenable: produtosBox.listenable(),
+            valueListenable: produtosBox!.listenable(),
             builder: (context, Box<Produto> box, _) {
               if (box.isEmpty) {
                 return const Center(child: Text('Nenhum produto adicionado.'));
