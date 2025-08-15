@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lista_de_compras/models/produto.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import './widget/campo_preco_widget.dart';
 import 'configuracoes_page.dart';
 
 class ListaComprasPage extends StatefulWidget {
@@ -76,30 +77,31 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
           title: Text(produto == null ? 'Adicionar Produto' : 'Editar Produto'),
           content: Form(
             key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  initialValue: nome,
-                  decoration: const InputDecoration(labelText: 'Nome'),
-                  validator: (value) => value!.isEmpty ? 'Informe o nome do produto' : null,
-                  onSaved: (value) => nome = value!,
-                ),
-                TextFormField(
-                  initialValue: quantidade.toString(),
-                  decoration: const InputDecoration(labelText: 'Quantidade'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) => value!.isEmpty ? 'Informe a quantidade' : null,
-                  onSaved: (value) => quantidade = int.tryParse(value!) ?? 1,
-                ),
-                TextFormField(
-                  initialValue: preco.toStringAsFixed(2),
-                  decoration: const InputDecoration(labelText: 'Preço'),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  validator: (value) => value!.isEmpty ? 'Informe o preço' : null,
-                  onSaved: (value) => preco = double.tryParse(value!) ?? 0.0,
-                ),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    initialValue: nome,
+                    decoration: const InputDecoration(labelText: 'Nome'),
+                    validator: (value) => value!.isEmpty ? 'Informe o nome do produto' : null,
+                    onSaved: (value) => nome = value!,
+                  ),
+                  TextFormField(
+                    initialValue: quantidade.toString(),
+                    decoration: const InputDecoration(labelText: 'Quantidade'),
+                    keyboardType: TextInputType.number,
+                    validator: (value) => value!.isEmpty ? 'Informe a quantidade' : null,
+                    onSaved: (value) => quantidade = int.tryParse(value!) ?? 1,
+                  ),
+                  CampoPreco(
+                    valorInicial: produto?.preco,
+                    onSaved: (value) { 
+                      preco = value;
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -314,6 +316,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(listaAtual ?? 'Lista de Compras'),
+        backgroundColor: Color.fromARGB(100, 0, 195, 255),
         actions: [
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
@@ -323,36 +326,37 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
             icon: const Icon(Icons.delete_forever),
             onPressed: _confirmarLimpeza,
           ),
-          // IconButton(
-          //   icon: Icon(widget.modoEscuro ? Icons.dark_mode : Icons.light_mode),
-          //   onPressed: widget.onToggleTheme,
-          // ),
           IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => ConfigPage()),
-              );
-            },
+            icon: Icon(widget.modoEscuro ? Icons.dark_mode : Icons.light_mode),
+            onPressed: widget.onToggleTheme,
           ),
+          // IconButton(
+          //   icon: const Icon(Icons.settings),
+          //   onPressed: () {
+          //     Navigator.of(context).push(
+          //       MaterialPageRoute(builder: (context) => ConfigPage()),
+          //     );
+          //   },
+          // ),
         ],
       ),
       drawer: Drawer(
         width: 250,
         child: Column(
           children: [
-            DrawerHeader(
-              decoration:
-                  const BoxDecoration(color: Color.fromARGB(255, 236, 214, 240)),
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-              child: Center(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 150, 23, 175)),
-                  icon: const Icon(Icons.add, color: Colors.white),
-                  label: const Text("Adicionar nova lista",
-                      style: TextStyle(color: Colors.white)),
-                  onPressed: adicionarLista,
+            SizedBox(
+              height: 100,
+              child: DrawerHeader(
+                decoration:
+                    const BoxDecoration(color: Color.fromARGB(100, 0, 195, 255)),
+                margin: EdgeInsets.zero,
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                child: Center(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text("Adicionar nova lista"),
+                    onPressed: adicionarLista,
+                  ),
                 ),
               ),
             ),
@@ -366,14 +370,14 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                       String nomeLista = listasBox.getAt(index)!;
                       return ListTile(
                         title: Text(nomeLista),
-                        onTap: () {
-                          setState(() {
-                            listaAtual = nomeLista;
-                          });
+                        onTap: () async {
+                          listaAtual = nomeLista;
+                          await Hive.openBox<Produto>('produtos_$listaAtual');
+                          produtosBox = Hive.box<Produto>('produtos_$listaAtual');
+                          setState(() {});
                           Navigator.pop(context);
                         },
                         trailing: IconButton(
-                          color: const Color.fromARGB(255, 211, 156, 223),
                           icon: const Icon(Icons.delete),
                           onPressed: () => confirmarApagarLista(nomeLista),
                         ),
@@ -390,7 +394,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
         children: [
           Positioned.fill(
             child: Opacity(
-              opacity: 0.08,
+              opacity: 0.05,
               child: Image.asset('assets/icon/app_icon.png', fit: BoxFit.contain),
             ),
           ),
@@ -421,15 +425,11 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                       setState(() {});
                     },
                     child: ListTile(
-                      textColor: const Color.fromARGB(255, 150, 23, 175),
                       title: Text(produto.nome),
                       subtitle: Text(
                           "${produto.quantidade}un x  R\$ ${produto.preco.toStringAsFixed(2)}"),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.edit,
-                            color: Color.fromARGB(255, 150, 23, 175)),
-                        onPressed: () => adicionarProduto(produto),
-                      ),
+                      onTap: () => adicionarProduto(produto),
+                      trailing: Text("Clique para editar"),
                     ),
                   );
                 },
@@ -440,20 +440,19 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => adicionarProduto(),
-        splashColor: const Color.fromARGB(255, 150, 23, 175),
-        backgroundColor: const Color.fromARGB(255, 236, 214, 240),
+        splashColor: const Color.fromARGB(255, 0, 63, 82),
+        backgroundColor: const Color.fromARGB(100, 0, 195, 255),
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: BottomAppBar(
-        color: const Color.fromARGB(255, 236, 214, 240),
+        color: const Color.fromARGB(100, 0, 195, 255),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Text(
             'Total: R\$ ${total.toStringAsFixed(2)}',
             style: TextStyle(
                 fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: const Color.fromARGB(255, 150, 23, 175)),
+                fontWeight: FontWeight.bold),
           ),
         ),
       ),
