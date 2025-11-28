@@ -5,17 +5,14 @@ import 'package:lista_de_compras/models/produto.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import './widget/campo_preco_widget.dart';
-import 'configuracoes_page.dart';
 
 class ListaComprasPage extends StatefulWidget {
-  final VoidCallback onToggleTheme;
-  final bool modoEscuro;
+  final String listaNome;
 
   const ListaComprasPage({
-    Key? key,
-    required this.onToggleTheme,
-    required this.modoEscuro,
-  }) : super(key: key);
+    super.key,
+    required this.listaNome
+  });
 
   @override
   _ListaComprasPageState createState() => _ListaComprasPageState();
@@ -30,30 +27,21 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
   Box<Produto>? produtosBox;
 
   final frasesPatos = [
-    'Quack, quack! Vamos às compras!',
-    'Pato feliz, lista cheia!',
-    'Compre tudo que o pato precisa!',
-    'Lista de compras do pato: completa!',
-    'Pato esperto, lista organizada!',
-    'Compras do pato: sempre em dia!',
-    'Pato no mercado, alegria garantida!',
-    'Lista de compras do pato: sucesso total!',
-    'Pato e compras: combinação perfeita!'
+    'O Senhor é meu pastor; nada me faltará. - Salmos 23:1',
+    'Confia no Senhor de todo o teu coração. - Provérbios 3:5',
+    'Tudo posso naquele que me fortalece. - Filipenses 4:13',
+
   ];
 
   @override
   void initState() {
     super.initState();
-    abrirBoxes();
+    abrirBox();
   }
 
-  Future<void> abrirBoxes() async {
-    var listasBox = Hive.box<String>('listas');
-    listaAtual = listasBox.values.first;
-
-    await Hive.openBox<Produto>('produtos_$listaAtual');
-    produtosBox = Hive.box<Produto>('produtos_$listaAtual');
-
+  Future<void> abrirBox() async {
+    await Hive.openBox<Produto>('produtos_${widget.listaNome}');
+    produtosBox = Hive.box<Produto>('produtos_${widget.listaNome}');
     setState(() {});
   }
 
@@ -326,10 +314,6 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
             icon: const Icon(Icons.delete_forever),
             onPressed: _confirmarLimpeza,
           ),
-          IconButton(
-            icon: Icon(widget.modoEscuro ? Icons.dark_mode : Icons.light_mode),
-            onPressed: widget.onToggleTheme,
-          ),
           // IconButton(
           //   icon: const Icon(Icons.settings),
           //   onPressed: () {
@@ -340,64 +324,8 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
           // ),
         ],
       ),
-      drawer: Drawer(
-        width: 250,
-        child: Column(
-          children: [
-            SizedBox(
-              height: 100,
-              child: DrawerHeader(
-                decoration:
-                    const BoxDecoration(color: Color.fromARGB(100, 0, 195, 255)),
-                margin: EdgeInsets.zero,
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                child: Center(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text("Adicionar nova lista"),
-                    onPressed: adicionarLista,
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: ValueListenableBuilder(
-                valueListenable: Hive.box<String>('listas').listenable(),
-                builder: (context, Box<String> listasBox, _) {
-                  return ListView.builder(
-                    itemCount: listasBox.length,
-                    itemBuilder: (context, index) {
-                      String nomeLista = listasBox.getAt(index)!;
-                      return ListTile(
-                        title: Text(nomeLista),
-                        onTap: () async {
-                          listaAtual = nomeLista;
-                          await Hive.openBox<Produto>('produtos_$listaAtual');
-                          produtosBox = Hive.box<Produto>('produtos_$listaAtual');
-                          setState(() {});
-                          Navigator.pop(context);
-                        },
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => confirmarApagarLista(nomeLista),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.05,
-              child: Image.asset('assets/icon/app_icon.png', fit: BoxFit.contain),
-            ),
-          ),
           ValueListenableBuilder(
             valueListenable: produtosBox!.listenable(),
             builder: (context, Box<Produto> box, _) {

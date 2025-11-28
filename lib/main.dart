@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:lista_de_compras/home_page.dart';
+import 'package:lista_de_compras/models/ingredientes.dart';
 import 'package:lista_de_compras/models/produto.dart';
-import 'lista_compras_page.dart';
-import 'configuracoes_page.dart';
+import 'package:lista_de_compras/models/receitas.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   Hive.registerAdapter(ProdutoAdapter());
+  Hive.registerAdapter(IngredienteAdapter());
+  Hive.registerAdapter(ReceitaAdapter());
   await Hive.openBox<String>('listas');
+  await Hive.openBox<Receita>('receitas');
+  await Hive.openBox<Ingrediente>('ingredientes');
   
   var listasBox = Hive.box<String>('listas');
   if (listasBox.isEmpty) listasBox.add("Lista Principal");
@@ -31,7 +36,7 @@ class _ListaComprasAppState extends State<ListaComprasApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Lista de Compras',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
         primarySwatch: Colors.yellow,
@@ -43,7 +48,7 @@ class _ListaComprasAppState extends State<ListaComprasApp> {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       themeMode: modoEscuro ? ThemeMode.dark : ThemeMode.light,
-      home: ListaComprasPage(
+      home: HomePage(
         onToggleTheme: () {
           setState(() {
             modoEscuro = !modoEscuro;
@@ -51,9 +56,18 @@ class _ListaComprasAppState extends State<ListaComprasApp> {
         },
         modoEscuro: modoEscuro,
       ),
-      routes: {
-        '/config': (context) => ConfigPage(),
-      },
+      // themeMode: modoEscuro ? ThemeMode.dark : ThemeMode.light,
+      // home: ListaComprasPage(
+      //   onToggleTheme: () {
+      //     setState(() {
+      //       modoEscuro = !modoEscuro;
+      //     });
+      //   },
+      //   modoEscuro: modoEscuro,
+      // ),
+      // routes: {
+      //   '/config': (context) => ConfigPage(),
+      // },
     );
   }
 }

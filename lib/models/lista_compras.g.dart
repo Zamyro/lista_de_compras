@@ -8,7 +8,7 @@ part of 'lista_compras.dart';
 
 class ListaComprasAdapter extends TypeAdapter<ListaCompras> {
   @override
-  final int typeId = 0;
+  final int typeId = 1;
 
   @override
   ListaCompras read(BinaryReader reader) {
