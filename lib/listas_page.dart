@@ -43,7 +43,6 @@ class _ListasPageState extends State<ListasPage> {
             onPressed: () async{
               if (novaLista.isNotEmpty) {
                 await listasBox.add(novaLista);
-                await Hive.box<String>('listas').add(novaLista);
                 setState(() {});
               }
               Navigator.pop(context);

@@ -65,17 +65,18 @@ class _ReceitasPageState extends State<ReceitasPage> {
   Future<void> confirmarApagarReceita(String receita) async {
     final confirmou = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: Text("Apagar Receita"),
         content: Text("Tem certeza que deseja apagar a receita \"$receita\"?"),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text("Cancelar"),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text("Apagar"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Excluir"),
           ),
         ],
       ),
@@ -86,14 +87,19 @@ class _ReceitasPageState extends State<ReceitasPage> {
     }
   }
 
-  void adicionarReceita() async {
+  void adicionarReceita(BuildContext context) async {
     Receita novaReceita = Receita(nome: '', ingredientes: [], preparo: '');
+
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Nova Receita"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text("Nova Receita", style: TextStyle(fontWeight: FontWeight.bold)),
         content: TextField(
-          decoration: const InputDecoration(labelText: 'Nome da Receita'),
+          decoration: const InputDecoration(
+            labelText: 'Nome da Receita',
+            border: OutlineInputBorder(),
+          ),
           onChanged: (value) => novaReceita = Receita(
             nome: value,
             ingredientes: [],
@@ -101,6 +107,10 @@ class _ReceitasPageState extends State<ReceitasPage> {
           ),
         ),
         actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           TextButton(
             onPressed: () {
               if (novaReceita.nome.isNotEmpty) {
@@ -114,10 +124,6 @@ class _ReceitasPageState extends State<ReceitasPage> {
             },
             child: const Text('Salvar'),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
-          ),
         ],
       ),
     );
@@ -127,50 +133,92 @@ class _ReceitasPageState extends State<ReceitasPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Receitas'),
+        title: const Text(
+          'Receitas',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
         backgroundColor: const Color.fromARGB(100, 0, 195, 255),
+        elevation: 4,
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color.fromARGB(100, 0, 195, 255),
+        onPressed: () => adicionarReceita(context),
+        child: const Icon(Icons.add),
       ),
       body: ValueListenableBuilder(
         valueListenable: Hive.box<Receita>('receitas').listenable(),
         builder: (context, Box<Receita> receitasBox, _) {
           if (receitasBox.isEmpty) {
-            return const Center(child: Text('Nenhuma receita adicionada.'));
+            return const Center(
+              child: Text(
+                'Nenhuma receita adicionada.',
+                style: TextStyle(fontSize: 18, color: Colors.black54),
+              )
+            );
           }
 
           return ListView.builder(
+            padding: const EdgeInsets.all(16),
             itemCount: receitasBox.length,
             itemBuilder: (context, i) {
               Receita r = receitasBox.getAt(i)!;
-              return ListTile(
-                title: Text(r.nome),
-                titleTextStyle: const TextStyle(fontSize: 24, color: Colors.black),
-                onTap: () async {
-                  receitaAtual = r;
-                  final ingredientesBoxName = 'ingredientes_${receitaAtual!.nome}';
-                  if (!Hive.isBoxOpen(ingredientesBoxName)) {
-                    await Hive.openBox<Ingrediente>(ingredientesBoxName);
-                  }
-                  ingredientesBox = Hive.box<Ingrediente>(ingredientesBoxName);
-                  setState(() {});
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ReceitaDetalhesPage(receita: receitaAtual!),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ReceitasPage(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        )
+                      ],
                     ),
-                  );
-                },
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () => receitasBox.deleteAt(i),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      title: Text(
+                        r.nome,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                      ),
+                      titleTextStyle: const TextStyle(fontSize: 24, color: Colors.black),
+                      onTap: () async {
+                        receitaAtual = r;
+                        final ingredientesBoxName = 'ingredientes_${receitaAtual!.nome}';
+                        if (!Hive.isBoxOpen(ingredientesBoxName)) {
+                          await Hive.openBox<Ingrediente>(ingredientesBoxName);
+                        }
+                        ingredientesBox = Hive.box<Ingrediente>(ingredientesBoxName);
+                        setState(() {});
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ReceitaDetalhesPage(receita: receitaAtual!),
+                          ),
+                        );
+                      },
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => receitasBox.deleteAt(i),
+                      ),
+                    ),
+                  ),
                 ),
               );
             },
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: adicionarReceita,
-        child: const Icon(Icons.add),
       ),
     );
   }
