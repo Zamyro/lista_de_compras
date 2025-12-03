@@ -1,4 +1,4 @@
-package com.example.lista_de_compras
+package com.example.duck_it
 
 import io.flutter.embedding.android.FlutterActivity
 

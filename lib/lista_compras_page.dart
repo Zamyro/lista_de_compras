@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:lista_de_compras/models/produto.dart';
+import 'package:duck_it/models/produto.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import './widget/campo_preco_widget.dart';
@@ -297,7 +297,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(listaAtual ?? 'Lista de Compras'),
-        backgroundColor: Color.fromARGB(100, 0, 195, 255),
+        backgroundColor: Colors.pinkAccent.shade100,
         actions: [
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
@@ -353,12 +353,15 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => adicionarProduto(),
-        splashColor: const Color.fromARGB(255, 0, 63, 82),
-        backgroundColor: const Color.fromARGB(100, 0, 195, 255),
-        child: const Icon(Icons.add),
+        splashColor: Colors.pink,
+        backgroundColor: Colors.pinkAccent.shade100,
+        child: const Icon(
+          Icons.add,
+          color: Colors.black
+        ),
       ),
       bottomNavigationBar: BottomAppBar(
-        color: const Color.fromARGB(100, 0, 195, 255),
+        color: Colors.pinkAccent.shade100,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Text(

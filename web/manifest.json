@@ -1,6 +1,6 @@
 {
-    "name": "lista_de_compras",
-    "short_name": "lista_de_compras",
+    "name": "duck_it",
+    "short_name": "duck_it",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

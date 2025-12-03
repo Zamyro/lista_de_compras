@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:lista_de_compras/home_page.dart';
-import 'package:lista_de_compras/models/ingredientes.dart';
-import 'package:lista_de_compras/models/produto.dart';
-import 'package:lista_de_compras/models/receitas.dart';
+import 'package:duck_it/home_page.dart';
+import 'package:duck_it/models/ingredientes.dart';
+import 'package:duck_it/models/produto.dart';
+import 'package:duck_it/models/receitas.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +17,6 @@ void main() async {
   await Hive.openBox<Ingrediente>('ingredientes');
   
   var listasBox = Hive.box<String>('listas');
-  if (listasBox.isEmpty) listasBox.add("Lista Principal");
   for (var nome in listasBox.values) {
     await Hive.openBox<Produto>('produtos_$nome');
   }

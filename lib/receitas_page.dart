@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:lista_de_compras/models/ingredientes.dart';
-import 'package:lista_de_compras/models/receitas.dart';
-import 'package:lista_de_compras/receita_detalhes_page.dart';
+import 'package:duck_it/models/ingredientes.dart';
+import 'package:duck_it/models/receitas.dart';
+import 'package:duck_it/receita_detalhes_page.dart';
 
 class ReceitasPage extends StatefulWidget {
   const ReceitasPage({super.key});
@@ -138,13 +138,16 @@ class _ReceitasPageState extends State<ReceitasPage> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: const Color.fromARGB(100, 0, 195, 255),
+        backgroundColor: Colors.orangeAccent.shade100,
         elevation: 4,
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color.fromARGB(100, 0, 195, 255),
+        backgroundColor: Colors.orangeAccent.shade100,
         onPressed: () => adicionarReceita(context),
-        child: const Icon(Icons.add),
+        child: const Icon(
+          Icons.add,
+          color: Colors.black
+        ),
       ),
       body: ValueListenableBuilder(
         valueListenable: Hive.box<Receita>('receitas').listenable(),

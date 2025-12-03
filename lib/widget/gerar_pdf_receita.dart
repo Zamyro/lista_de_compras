@@ -2,7 +2,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
-import 'models/receitas.dart';
+import '../models/receitas.dart';
 
 Future<void> gerarPdfReceita(Receita receita) async {
   final pdf = pw.Document();

@@ -1,4 +1,4 @@
-# Lista de Compras - Flutter App
+# Duck It! - Flutter App
 Um aplicativo simples e prático para gerenciar sua **lista de compras**, desenvolvido em **Flutter** e com armazenamento local usando **Hive**.
 Ideal para quem quer manter suas compras organizadas de forma rápida e intuitiva.
 ---
@@ -24,11 +24,11 @@ Ideal para quem quer manter suas compras organizadas de forma rápida e intuitiv
 ## Como Instalar
 1. **Clone este repositório**
    ```bash
-   git clone https://github.com/Zamyro/lista_de_compras.git
+   git clone https://github.com/Zamyro/duck_it.git
    ```
 2. **Acesse a pasta do projeto**
    ```bash
-   cd lista_de_compras
+   cd duck_it
    ```
 3. **Instale as dependências**
    ```bash

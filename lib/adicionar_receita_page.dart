@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:lista_de_compras/models/ingredientes.dart';
-import 'package:lista_de_compras/models/receitas.dart';
+import 'package:duck_it/models/ingredientes.dart';
+import 'package:duck_it/models/receitas.dart';
 
 class AdicionarReceitaPage extends StatefulWidget {
   final Receita? receita;
@@ -91,7 +91,7 @@ class _AdicionarReceitaPageState extends State<AdicionarReceitaPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.receita == null ? "Adicionar Receita" : "Editar Receita"),
-        backgroundColor: const Color.fromARGB(100, 0, 195, 255),
+        backgroundColor: Colors.orangeAccent.shade100,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),

@@ -1,4 +1,4 @@
-name: lista_de_compras
+name: duck_it
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -39,6 +39,7 @@ dependencies:
   flutter_typeahead: ^5.2.0
   flutter_masked_text2: ^0.9.1
   intl: ^0.18.0
+  share_plus: ^10.0.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -63,7 +64,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter.
 flutter_icons:
-  android: true
+  android: "launcher_icon"
   ios: true
   image_path: "assets/icon/app_icon.png"
 
@@ -76,6 +77,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/app_icon.png
+    - assets/logo.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import 'package:lista_de_compras/models/ingredientes.dart';
+import 'package:duck_it/models/ingredientes.dart';
 
 part 'receitas.g.dart';
 

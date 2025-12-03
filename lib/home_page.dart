@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lista_de_compras/listas_page.dart';
+import 'package:duck_it/listas_page.dart';
 import 'receitas_page.dart';
 
 class HomePage extends StatelessWidget {
@@ -16,22 +16,25 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text("Organize sua Vida"),
-        backgroundColor: const Color.fromARGB(100, 0, 195, 255),
-        elevation: 0,
-        actions: [
-          // IconButton(
-          //   icon: Icon(modoEscuro ? Icons.dark_mode : Icons.light_mode),
-          //   onPressed: onToggleTheme,
-          // ),
-        ],
-      ),
+      // appBar: AppBar(
+      //   backgroundColor: const Color.fromARGB(100, 0, 195, 255),
+      //   elevation: 0,
+      //   actions: [
+      //     IconButton(
+      //       icon: Icon(modoEscuro ? Icons.dark_mode : Icons.light_mode),
+      //       onPressed: onToggleTheme,
+      //     ),
+      //   ],
+      // ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Center(
+              child: Image.asset('assets/logo.png', fit: BoxFit.fill, height: 300),
+            ),
+
             const SizedBox(height: 20),
 
             const Text(
@@ -45,7 +48,7 @@ class HomePage extends StatelessWidget {
               context,
               icon: Icons.shopping_cart,
               title: "Lista de Compras",
-              color: Colors.blueAccent,
+              color: Colors.pinkAccent,
               page: const ListasPage(),
             ),
 

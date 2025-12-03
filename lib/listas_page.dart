@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:lista_de_compras/lista_compras_page.dart';
+import 'package:duck_it/lista_compras_page.dart';
 
 class ListasPage extends StatefulWidget {
   const ListasPage({super.key});
@@ -64,11 +64,19 @@ class _ListasPageState extends State<ListasPage> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text("Cancelar")),
+              child: Text(
+                "Cancelar",
+                style: TextStyle(color: Colors.black)
+              )
+          ),
           TextButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () => Navigator.pop(context, true),
-              child: const Text("Excluir")),
+              child: Text(
+                "Excluir",
+                style: TextStyle(color: Colors.white)
+              )
+          ),
         ],
       ),
     );
@@ -91,13 +99,16 @@ class _ListasPageState extends State<ListasPage> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: const Color.fromARGB(100, 0, 195, 255),
+        backgroundColor: Colors.pinkAccent.shade100,
         elevation: 4,
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color.fromARGB(100, 0, 195, 255),
+        backgroundColor: Colors.pinkAccent.shade100,
         onPressed: () => adicionarLista(context),
-        child: const Icon(Icons.add),
+        child: const Icon(
+          Icons.add,
+          color: Colors.black
+        ),
       ),
       body: ValueListenableBuilder(
         valueListenable: listasBox.listenable(),
