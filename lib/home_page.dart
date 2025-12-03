@@ -21,10 +21,10 @@ class HomePage extends StatelessWidget {
         backgroundColor: const Color.fromARGB(100, 0, 195, 255),
         elevation: 0,
         actions: [
-          IconButton(
-            icon: Icon(modoEscuro ? Icons.dark_mode : Icons.light_mode),
-            onPressed: onToggleTheme,
-          ),
+          // IconButton(
+          //   icon: Icon(modoEscuro ? Icons.dark_mode : Icons.light_mode),
+          //   onPressed: onToggleTheme,
+          // ),
         ],
       ),
       body: Padding(

@@ -133,13 +133,6 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
   Future<void> apagarLista(String nome) async {
     var listasBox = Hive.box<String>('listas');
 
-    if (listasBox.length == 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Você não pode apagar a última lista!')),
-      );
-      return;
-    }
-
     int index = listasBox.values.toList().indexOf(nome);
     if (index != -1) {
       await listasBox.deleteAt(index);
@@ -314,14 +307,6 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
             icon: const Icon(Icons.delete_forever),
             onPressed: _confirmarLimpeza,
           ),
-          // IconButton(
-          //   icon: const Icon(Icons.settings),
-          //   onPressed: () {
-          //     Navigator.of(context).push(
-          //       MaterialPageRoute(builder: (context) => ConfigPage()),
-          //     );
-          //   },
-          // ),
         ],
       ),
       body: Stack(

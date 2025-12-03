@@ -210,7 +210,7 @@ class _ReceitasPageState extends State<ReceitasPage> {
                       },
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => receitasBox.deleteAt(i),
+                        onPressed: () => confirmarApagarReceita(r.nome),
                       ),
                     ),
                   ),
