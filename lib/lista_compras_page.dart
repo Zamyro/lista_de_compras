@@ -216,8 +216,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
     pdf.addPage(
       pw.Page(
         build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
+          return pw.ListView(
             children: [
               pw.Center(
                 child: pw.Text(listaAtual ?? 'Lista de Compras',
