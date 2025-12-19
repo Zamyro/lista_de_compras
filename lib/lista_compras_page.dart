@@ -105,7 +105,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
                   if (produto == null) {
-                    produtosBox?.add(Produto(nome: nome, quantidade: quantidade, preco: preco));
+                    produtosBox?.add(Produto(nome: nome, quantidade: quantidade, preco: preco, marcas: []));
                   } else {
                     produto.nome = nome;
                     produto.quantidade = quantidade;
