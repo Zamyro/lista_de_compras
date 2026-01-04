@@ -9,17 +9,13 @@ import 'package:duck_it/models/receitas.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
+  Hive.registerAdapter(MarcaAdapter());
   Hive.registerAdapter(ProdutoAdapter());
   Hive.registerAdapter(IngredienteAdapter());
   Hive.registerAdapter(ReceitaAdapter());
-  await Hive.openBox<String>('listas');
+  await Hive.openBox<Produto>('produtos');
   await Hive.openBox<Receita>('receitas');
   await Hive.openBox<Ingrediente>('ingredientes');
-  
-  var listasBox = Hive.box<String>('listas');
-  for (var nome in listasBox.values) {
-    await Hive.openBox<Produto>('produtos_$nome');
-  }
 
   runApp(ListaComprasApp());
 }

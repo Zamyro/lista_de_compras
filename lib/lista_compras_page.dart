@@ -1,10 +1,17 @@
+import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
+import 'package:duck_it/widget/receipt_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:duck_it/models/produto.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 import './widget/campo_preco_widget.dart';
+import 'dart:ui' as ui;
 
 class ListaComprasPage extends StatefulWidget {
   final String listaNome;
@@ -98,7 +105,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                 if (_formKey.currentState!.validate()) {
                   _formKey.currentState!.save();
                   if (produto == null) {
-                    produtosBox?.add(Produto(nome: nome, quantidade: quantidade, preco: preco));
+                    produtosBox?.add(Produto(nome: nome, quantidade: quantidade, preco: preco, marcas: []));
                   } else {
                     produto.nome = nome;
                     produto.quantidade = quantidade;
@@ -247,6 +254,41 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
     await Printing.layoutPdf(onLayout: (format) => pdf.save());
   }
 
+  Future<void> salvarPNG() async {
+  try {
+    final boundary = receiptKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) return;
+
+    // 1. Aguarda se houver necessidade de pintura
+    if (boundary.debugNeedsPaint) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      return salvarPNG();
+    }
+
+    // 2. Converte o widget em imagem PNG
+    ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+    ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    
+    if (byteData != null) {
+      Uint8List pngBytes = byteData.buffer.asUint8List();
+
+      // 3. Cria um arquivo temporário para poder compartilhar/salvar
+      final directory = await getTemporaryDirectory();
+      final imagePath = '${directory.path}/recibo_${widget.listaNome}.png';
+      final imageFile = File(imagePath);
+      await imageFile.writeAsBytes(pngBytes);
+
+      // 4. Abre o menu do sistema (Salvar na Galeria, WhatsApp, Drive, etc)
+      await Share.shareXFiles(
+        [XFile(imagePath)],
+        text: 'Recibo da lista: ${widget.listaNome}',
+      );
+    }
+  } catch (e) {
+    debugPrint("Erro ao salvar imagem: $e");
+  }
+}
+
   void adicionarLista() async {
     String novaLista = '';
     await showDialog(
@@ -303,6 +345,10 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
             onPressed: gerarPDF,
           ),
           IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: salvarPNG,
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_forever),
             onPressed: _confirmarLimpeza,
           ),
@@ -317,6 +363,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                 return const Center(child: Text('Nenhum produto adicionado.'));
               }
               return ListView.builder(
+                physics: const BouncingScrollPhysics(),
                 itemCount: box.length,
                 itemBuilder: (context, index) {
                   final produto = box.getAt(index)!;
@@ -347,6 +394,15 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
                 },
               );
             },
+          ),
+          Transform.translate(
+            offset: const Offset(-1000, -1000),
+            child: SizedBox(
+              width: 300,
+              child: SingleChildScrollView( 
+                child: buildReceiptUI(widget.listaNome, produtosBox!.values.toList()),
+              ),
+            ),
           ),
         ],
       ),

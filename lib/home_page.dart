@@ -1,3 +1,4 @@
+import 'package:duck_it/lista_produtos_page.dart';
 import 'package:flutter/material.dart';
 import 'package:duck_it/listas_page.dart';
 import 'receitas_page.dart';
@@ -28,21 +29,20 @@ class HomePage extends StatelessWidget {
       // ),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: ListView(
           children: [
             Center(
-              child: Image.asset('assets/logo.png', fit: BoxFit.fill, height: 300),
+              child: Image.asset('assets/logo.png', fit: BoxFit.fill, height: 250),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
 
             const Text(
               "O que você deseja acessar?",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
 
             _buildCard(
               context,
@@ -60,6 +60,16 @@ class HomePage extends StatelessWidget {
               title: "Receitas",
               color: Colors.orangeAccent,
               page: const ReceitasPage(),
+            ),
+
+            const SizedBox(height: 30),
+
+            _buildCard(
+              context,
+              icon: Icons.shopping_basket,
+              title: "Produtos",
+              color: Colors.greenAccent,
+              page: ProdutosListaPage(),
             ),
           ],
         ),
@@ -82,7 +92,7 @@ class HomePage extends StatelessWidget {
         );
       },
       child: Container(
-        height: 160,
+        height: 100,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
