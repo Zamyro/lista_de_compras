@@ -1,26 +1,33 @@
-import 'package:duck_it/models/produto.dart';
-import 'package:duck_it/widget/scanner_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import '../models/produto.dart';
+import '../widget/scanner_screen.dart';
 
+class EditarProdutoScreen extends StatefulWidget {
+  final Produto produto;
 
-class CadastroProdutoScreen extends StatefulWidget {
+  const EditarProdutoScreen({Key? key, required this.produto}) : super(key: key);
+
   @override
-  _CadastroProdutoScreenState createState() => _CadastroProdutoScreenState();
+  State<EditarProdutoScreen> createState() => _EditarProdutoScreenState();
 }
 
-class _CadastroProdutoScreenState extends State<CadastroProdutoScreen> {
-  final TextEditingController _nomeProdutoController = TextEditingController();
-  
-  List<Map<String, TextEditingController>> _marcasControllers = [];
+class _EditarProdutoScreenState extends State<EditarProdutoScreen> {
+  late List<Map<String, TextEditingController>> _marcasControllers;
 
   @override
   void initState() {
     super.initState();
-    _adicionarNovaMarca();
+
+    _marcasControllers = widget.produto.marcas!.map((marca) {
+      return {
+        'nome': TextEditingController(text: marca.nome),
+        'codigo': TextEditingController(text: marca.codigoBarras),
+      };
+    }).toList();
   }
 
-  void _adicionarNovaMarca() {
+  void _adicionarMarca() {
     setState(() {
       _marcasControllers.add({
         'nome': TextEditingController(),
@@ -35,32 +42,18 @@ class _CadastroProdutoScreenState extends State<CadastroProdutoScreen> {
     });
   }
 
-  void _salvarProduto() {
-    if (_nomeProdutoController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Por favor informe o nome do produto'))
-      );
-      return;
-    }
-
-    List<Marca> marcasParaSalvar = _marcasControllers.map((m) {
+  void _salvarAlteracoes() {
+    widget.produto.marcas = _marcasControllers.map((m) {
       return Marca(
         nome: m['nome']!.text,
         codigoBarras: m['codigo']!.text,
       );
     }).toList();
 
-    final novoProduto = Produto(
-      nome: _nomeProdutoController.text,
-      preco: 0.0,
-      quantidade: 1,
-      marcas: marcasParaSalvar,
-    );
-
-    Hive.box<Produto>('produtos').add(novoProduto);
+    widget.produto.save();
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Produto salvo com sucesso ✅'))
+      const SnackBar(content: Text('Marcas atualizadas com sucesso')),
     );
 
     Navigator.pop(context);
@@ -68,7 +61,6 @@ class _CadastroProdutoScreenState extends State<CadastroProdutoScreen> {
 
   @override
   void dispose() {
-    _nomeProdutoController.dispose();
     for (var m in _marcasControllers) {
       m['nome']?.dispose();
       m['codigo']?.dispose();
@@ -79,58 +71,43 @@ class _CadastroProdutoScreenState extends State<CadastroProdutoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Novo Produto")),
+      appBar: AppBar(title: Text('Editar ${widget.produto.nome}')),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(
-              controller: _nomeProdutoController,
-              decoration: InputDecoration(labelText: "Nome do Produto (Ex: Creme de Leite)"),
-            ),
-            SizedBox(height: 20),
-            Text("Marcas e Códigos", style: TextStyle(fontWeight: FontWeight.bold)),
-            Divider(),
-            
             ListView.builder(
               shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: _marcasControllers.length,
               itemBuilder: (context, index) {
                 return Card(
-                  margin: EdgeInsets.symmetric(vertical: 8),
-                  elevation: 4,
                   child: Padding(
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     child: Column(
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text("Marca ${index + 1}", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                            Text('Marca ${index + 1}',
+                                style: const TextStyle(fontWeight: FontWeight.bold)),
                             IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
+                              icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () => _removerMarca(index),
-                              tooltip: 'Remover esta marca',
                             )
                           ],
                         ),
                         TextField(
                           controller: _marcasControllers[index]['nome'],
-                          decoration: InputDecoration(
-                            labelText: "Nome da Marca",
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
+                          decoration: const InputDecoration(labelText: 'Nome da Marca'),
                         ),
-                        const SizedBox(height: 15),
+                        const SizedBox(height: 10),
                         Row(
                           children: [
                             Expanded(
                               child: TextField(
                                 controller: _marcasControllers[index]['codigo'],
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: "Código de Barras",
                                   border: OutlineInputBorder(),
                                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -138,9 +115,7 @@ class _CadastroProdutoScreenState extends State<CadastroProdutoScreen> {
                                 ),
                               ),
                             ),
-
                             const SizedBox(width: 10),
-
                             Ink(
                               decoration: ShapeDecoration(
                                 color: Colors.pinkAccent,
@@ -172,18 +147,17 @@ class _CadastroProdutoScreenState extends State<CadastroProdutoScreen> {
                 );
               },
             ),
-            
+            const SizedBox(height: 20),
             TextButton.icon(
-              onPressed: _adicionarNovaMarca,
-              icon: Icon(Icons.add),
-              label: Text("Adicionar outra marca"),
+              onPressed: _adicionarMarca,
+              icon: const Icon(Icons.add),
+              label: const Text('Adicionar nova marca'),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             ElevatedButton(
-              onPressed: _salvarProduto,
-              child: Text("Salvar Produto"),
-              style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 50)),
-            )
+              onPressed: _salvarAlteracoes,
+              child: const Text('Salvar Alterações'),
+            ),
           ],
         ),
       ),

@@ -1,3 +1,4 @@
+import 'package:duck_it/editar_produto_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/produto.dart';
 
@@ -74,18 +75,25 @@ class ProdutoDetalhesPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.copy, size: 20),
-                        onPressed: () {
-                          // Opcional: Copiar código de barras para o clipboard
-                        },
-                      ),
+                      // trailing: IconButton(
+                      //   icon: const Icon(Icons.copy, size: 20),
+                      //   onPressed: () {
+                          
+                      //   },
+                      // ),
                     ),
                   );
                 },
               ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+          context, 
+          MaterialPageRoute(builder: (_) => EditarProdutoScreen(produto: produto))
+        ),
+        child: const Icon(Icons.edit),
       ),
     );
   }

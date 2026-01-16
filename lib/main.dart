@@ -13,7 +13,7 @@ void main() async {
   Hive.registerAdapter(ProdutoAdapter());
   Hive.registerAdapter(IngredienteAdapter());
   Hive.registerAdapter(ReceitaAdapter());
-  await Hive.openBox<Produto>('produtos');
+  await Hive.openBox<String>('listas');
   await Hive.openBox<Receita>('receitas');
   await Hive.openBox<Ingrediente>('ingredientes');
 

@@ -39,8 +39,6 @@ class _CampoPrecoState extends State<CampoPreco> {
         hintText: 'R\$ 0,00',
       ),
       keyboardType: TextInputType.number,
-      validator: (value) =>
-        _controller.numberValue == 0 ? 'Informe o preço' : null,
       onSaved: (value) {
         widget.onSaved(_controller.numberValue);
       },

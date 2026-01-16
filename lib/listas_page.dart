@@ -11,7 +11,7 @@ class ListasPage extends StatefulWidget {
 }
 
 class _ListasPageState extends State<ListasPage> {
-  late Box<String> listasBox;
+  late final Box<String> listasBox;
 
   @override
   void initState() {
@@ -19,20 +19,24 @@ class _ListasPageState extends State<ListasPage> {
     listasBox = Hive.box<String>('listas');
   }
 
-  void adicionarLista(BuildContext context) async {
-    String novaLista = "";
+  Future<void> adicionarLista() async {
+    String nomeLista = "";
 
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text("Criar nova lista", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Criar nova lista",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: TextField(
+          autofocus: true,
           decoration: const InputDecoration(
             labelText: "Nome da lista",
             border: OutlineInputBorder(),
           ),
-          onChanged: (v) => novaLista = v,
+          onChanged: (v) => nomeLista = v.trim(),
         ),
         actions: [
           TextButton(
@@ -40,11 +44,16 @@ class _ListasPageState extends State<ListasPage> {
             child: const Text("Cancelar"),
           ),
           TextButton(
-            onPressed: () async{
-              if (novaLista.isNotEmpty) {
-                await listasBox.add(novaLista);
-                setState(() {});
+            onPressed: () async {
+              if (nomeLista.isEmpty) return;
+
+              // Evita listas duplicadas
+              if (listasBox.values.contains(nomeLista)) {
+                Navigator.pop(context);
+                return;
               }
+
+              await listasBox.add(nomeLista);
               Navigator.pop(context);
             },
             child: const Text("Salvar"),
@@ -54,40 +63,39 @@ class _ListasPageState extends State<ListasPage> {
     );
   }
 
-  Future<void> confirmarExcluir(String nome) async {
+  Future<void> excluirLista(String nomeLista) async {
     final confirmar = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Text("Apagar lista \"$nome\"?"),
+        title: Text('Excluir "$nomeLista"?'),
         content: const Text("Essa ação não pode ser desfeita."),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(
-                "Cancelar",
-                style: TextStyle(color: Colors.black)
-              )
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancelar"),
           ),
           TextButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(
-                "Excluir",
-                style: TextStyle(color: Colors.white)
-              )
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Excluir", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
-    if (confirmar == true) {
-      final index = listasBox.values.toList().indexOf(nome);
-      if (index != -1) {
-        listasBox.deleteAt(index);
-        await Hive.deleteBoxFromDisk('produtos_$nome');
-        setState(() {});
-      }
+
+    if (confirmar != true) return;
+
+    final index = listasBox.values.toList().indexOf(nomeLista);
+    if (index == -1) return;
+
+    await listasBox.deleteAt(index);
+
+    final boxName = 'produtos_$nomeLista';
+    if (Hive.isBoxOpen(boxName)) {
+      await Hive.box(boxName).close();
     }
+    await Hive.deleteBoxFromDisk(boxName);
   }
 
   @override
@@ -100,19 +108,15 @@ class _ListasPageState extends State<ListasPage> {
         ),
         centerTitle: true,
         backgroundColor: Colors.pinkAccent.shade100,
-        elevation: 4,
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.pinkAccent.shade100,
-        onPressed: () => adicionarLista(context),
-        child: const Icon(
-          Icons.add,
-          color: Colors.black
-        ),
+        onPressed: adicionarLista,
+        child: const Icon(Icons.add, color: Colors.black),
       ),
       body: ValueListenableBuilder(
         valueListenable: listasBox.listenable(),
-        builder: (context, Box<String> box, _) {
+        builder: (_, Box<String> box, __) {
           if (box.isEmpty) {
             return const Center(
               child: Text(
@@ -121,27 +125,30 @@ class _ListasPageState extends State<ListasPage> {
               ),
             );
           }
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: box.length,
-            itemBuilder: (context, i) {
-              String nome = box.getAt(i)!;
+            itemBuilder: (_, i) {
+              final nomeLista = box.getAt(i)!;
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ListaComprasPage(listaNome: nome),
+                        builder: (_) =>
+                            ListaComprasPage(listaNome: nomeLista),
                       ),
                     );
                   },
-                  borderRadius: BorderRadius.circular(20),
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20), 
-                      color: Colors.white, 
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -151,14 +158,21 @@ class _ListasPageState extends State<ListasPage> {
                       ],
                     ),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       title: Text(
-                        nome,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                        nomeLista,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => confirmarExcluir(nome),
+                        icon:
+                            const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => excluirLista(nomeLista),
                       ),
                     ),
                   ),

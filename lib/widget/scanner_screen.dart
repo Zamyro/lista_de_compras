@@ -9,15 +9,33 @@ class ScannerScreen extends StatefulWidget {
 }
 
 class _ScannerScreenState extends State<ScannerScreen> {
-  MobileScannerController cameraController = MobileScannerController();
-  bool _screenOpened = false;
+  late final MobileScannerController cameraController;
+  bool _hasScanned = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _screenOpened = true;
-    });
+    cameraController = MobileScannerController();
+  }
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    if (_hasScanned) return;
+
+    for (final barcode in capture.barcodes) {
+      final String? code = barcode.rawValue;
+      if (code != null && code.isNotEmpty) {
+        _hasScanned = true;
+        debugPrint('Código detectado: $code');
+        Navigator.pop(context, code);
+        break;
+      }
+    }
   }
 
   @override
@@ -27,53 +45,34 @@ class _ScannerScreenState extends State<ScannerScreen> {
         title: const Text('Escanear Código'),
         actions: [
           IconButton(
-            color: Colors.white,
             icon: ValueListenableBuilder(
               valueListenable: cameraController.torchState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case TorchState.off:
-                    return const Icon(Icons.flash_off, color: Colors.grey);
-                  case TorchState.on:
-                    return const Icon(Icons.flash_on, color: Colors.yellow);
-                }
+              builder: (context, state, _) {
+                return Icon(
+                  state == TorchState.on ? Icons.flash_on : Icons.flash_off,
+                  color: state == TorchState.on ? Colors.yellow : Colors.grey,
+                );
               },
             ),
-            iconSize: 32.0,
-            onPressed: () => cameraController.toggleTorch(),
+            onPressed: cameraController.toggleTorch,
           ),
           IconButton(
-            color: Colors.white,
             icon: ValueListenableBuilder(
               valueListenable: cameraController.cameraFacingState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case CameraFacing.front:
-                    return const Icon(Icons.camera_front);
-                  case CameraFacing.back:
-                    return const Icon(Icons.camera_rear);
-                }
+              builder: (context, state, _) {
+                return Icon(
+                  state == CameraFacing.front ? Icons.camera_front : Icons.camera_rear,
+                  color: Colors.grey,
+                );
               },
             ),
-            iconSize: 32.0,
-            onPressed: () => cameraController.switchCamera(),
+            onPressed: cameraController.switchCamera,
           ),
         ],
       ),
       body: MobileScanner(
         controller: cameraController,
-        onDetect: (capture) {
-          if (!_screenOpened) return;
-          
-          final List<Barcode> barcodes = capture.barcodes;
-          for (final barcode in barcodes) {
-            if (barcode.rawValue != null) {
-              debugPrint('Código detectado: ${barcode.rawValue}');
-              Navigator.pop(context, barcode.rawValue);
-              break; 
-            }
-          }
-        },
+        onDetect: _onDetect,
       ),
     );
   }
