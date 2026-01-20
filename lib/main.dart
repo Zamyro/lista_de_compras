@@ -14,6 +14,7 @@ void main() async {
   Hive.registerAdapter(IngredienteAdapter());
   Hive.registerAdapter(ReceitaAdapter());
   await Hive.openBox<String>('listas');
+  await Hive.openBox<Produto>('produtos_catalogo');
   await Hive.openBox<Receita>('receitas');
   await Hive.openBox<Ingrediente>('ingredientes');
 

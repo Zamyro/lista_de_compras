@@ -91,7 +91,7 @@ class _ListasPageState extends State<ListasPage> {
 
     await listasBox.deleteAt(index);
 
-    final boxName = 'produtos_$nomeLista';
+    final boxName = 'itens_$nomeLista';
     if (Hive.isBoxOpen(boxName)) {
       await Hive.box(boxName).close();
     }

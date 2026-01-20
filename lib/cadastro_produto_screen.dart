@@ -57,7 +57,7 @@ class _CadastroProdutoScreenState extends State<CadastroProdutoScreen> {
       marcas: marcasParaSalvar,
     );
 
-    Hive.box<Produto>('produtos').add(novoProduto);
+    Hive.box<Produto>('produtos_catalogo').add(novoProduto);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Produto salvo com sucesso ✅'))

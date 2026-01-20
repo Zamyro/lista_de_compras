@@ -1,4 +1,4 @@
-import 'package:duck_it/lista_produtos_page.dart';
+import 'package:duck_it/produtos_catalogo_page.dart';
 import 'package:flutter/material.dart';
 import 'package:duck_it/listas_page.dart';
 import 'receitas_page.dart';
@@ -69,7 +69,7 @@ class HomePage extends StatelessWidget {
               icon: Icons.shopping_basket,
               title: "Produtos",
               color: Colors.greenAccent,
-              page: ProdutosListaPage(),
+              page: ProdutosCatalogoPage(),
             ),
           ],
         ),

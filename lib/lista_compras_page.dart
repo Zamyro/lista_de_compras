@@ -1,326 +1,294 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:duck_it/widget/receipt_widget.dart';
+import 'dart:ui' as ui;
+
+import 'package:duck_it/widget/scanner_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:duck_it/models/produto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
-import './widget/campo_preco_widget.dart';
-import 'dart:ui' as ui;
+
+import 'package:duck_it/models/produto.dart';
+import 'package:duck_it/widget/campo_preco_widget.dart';
+import 'package:duck_it/widget/receipt_widget.dart';
 
 class ListaComprasPage extends StatefulWidget {
   final String listaNome;
 
   const ListaComprasPage({
     super.key,
-    required this.listaNome
+    required this.listaNome,
   });
 
   @override
-  _ListaComprasPageState createState() => _ListaComprasPageState();
+  State<ListaComprasPage> createState() => _ListaComprasPageState();
 }
 
 class _ListaComprasPageState extends State<ListaComprasPage> {
   final _formKey = GlobalKey<FormState>();
+  final GlobalKey receiptKey = GlobalKey();
+
+  Box<Produto>? produtosBox;
+
   String nome = '';
   int quantidade = 1;
   double preco = 0.0;
-  String? listaAtual;
-  Box<Produto>? produtosBox;
 
-  final frasesPatos = [
+  final frases = [
     'O Senhor é meu pastor; nada me faltará. - Salmos 23:1',
     'Confia no Senhor de todo o teu coração. - Provérbios 3:5',
     'Tudo posso naquele que me fortalece. - Filipenses 4:13',
-
   ];
 
   @override
   void initState() {
     super.initState();
-    abrirBox();
+    _abrirBox();
   }
 
-  Future<void> abrirBox() async {
-    await Hive.openBox<Produto>('produtos_${widget.listaNome}');
-    produtosBox = Hive.box<Produto>('produtos_${widget.listaNome}');
+  Future<void> _abrirBox() async {
+    final boxName = 'produtos_${widget.listaNome}';
+    if (!Hive.isBoxOpen(boxName)) {
+      await Hive.openBox<Produto>(boxName);
+    }
+    produtosBox = Hive.box<Produto>(boxName);
     setState(() {});
   }
 
-  void adicionarProduto([Produto? produto]) {
+  /* ================ BUSCA DE PRODUTOS ================ */
+
+  Produto? buscarProdutoPorCodigo(String codigo) {
+      if (produtosBox == null) return null;
+
+      for (final produto in produtosBox!.values) {
+        final encontrou = produto.marcas?.any(
+          (m) => m.codigoBarras == codigo,
+        );
+
+        if (encontrou == true) {
+          return produto;
+        }
+      }
+      return null;
+  }
+
+
+  /* ===================== PRODUTOS ===================== */
+
+  void adicionarOuEditarProduto([Produto? produto]) {
     if (produtosBox == null) return;
 
-    if (produto == null) {
-      nome = '';
-      quantidade = 1;
-      preco = 0.0;
-    } else {
+    String? codigoLido;
+
+    if (produto != null) {
       nome = produto.nome;
       quantidade = produto.quantidade;
       preco = produto.preco;
+    } else {
+      nome = '';
+      quantidade = 1;
+      preco = 0.0;
     }
 
     showDialog(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: Text(produto == null ? 'Adicionar Produto' : 'Editar Produto'),
-          content: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    initialValue: nome,
-                    decoration: const InputDecoration(labelText: 'Nome'),
-                    validator: (value) => value!.isEmpty ? 'Informe o nome do produto' : null,
-                    onSaved: (value) => nome = value!,
-                  ),
-                  TextFormField(
-                    initialValue: quantidade.toString(),
-                    decoration: const InputDecoration(labelText: 'Quantidade'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) => value!.isEmpty ? 'Informe a quantidade' : null,
-                    onSaved: (value) => quantidade = int.tryParse(value!) ?? 1,
-                  ),
-                  CampoPreco(
-                    valorInicial: produto?.preco,
-                    onSaved: (value) { 
-                      preco = value;
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  if (produto == null) {
-                    produtosBox?.add(Produto(nome: nome, quantidade: quantidade, preco: preco, marcas: []));
-                  } else {
-                    produto.nome = nome;
-                    produto.quantidade = quantidade;
-                    produto.preco = preco;
-                    produtosBox?.putAt(produtosBox!.values.toList().indexOf(produto), produto);
-                  }
-                  Navigator.pop(context);
-                  setState(() {});
-                }
-              },
-              child: const Text('Salvar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _limparLista() {
-    produtosBox?.clear();
-    setState(() {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lista de compras limpa!')),
-      );
-    });
-  }
-
-  Future<void> apagarLista(String nome) async {
-    var listasBox = Hive.box<String>('listas');
-
-    int index = listasBox.values.toList().indexOf(nome);
-    if (index != -1) {
-      await listasBox.deleteAt(index);
-    }
-
-    await Hive.deleteBoxFromDisk('produtos_$nome');
-
-    if (listaAtual == nome) {
-      if (listasBox.isNotEmpty) {
-        listaAtual = listasBox.values.first;
-        await Hive.openBox<Produto>('produtos_$listaAtual');
-        produtosBox = Hive.box<Produto>('produtos_$listaAtual');
-      } else {
-        listaAtual = null;
-        produtosBox = null;
-      }
-    }
-
-    setState(() {});
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Lista $nome apagada!')),
-    );
-  }
-
-  Future<void> confirmarApagarLista(String nome) async {
-    final confirmou = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Apagar "$nome"?'),
-        content: const Text('Essa ação não pode ser desfeita.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Apagar'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmou == true) {
-      await apagarLista(nome);
-    }
-  }
-
-  Future<void> _confirmarLimpeza() async {
-    bool? confirmacao = await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Limpar Lista'),
-          content:
-              const Text('Você tem certeza que deseja limpar a lista de compras?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Limpar Lista'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmacao == true) {
-      _limparLista();
-    }
-  }
-
-  void gerarPDF() async {
-    final pdf = pw.Document();
-    final frase = frasesPatos[Random().nextInt(frasesPatos.length)];
-
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.ListView(
-            children: [
-              pw.Center(
-                child: pw.Text(listaAtual ?? 'Lista de Compras',
-                    style:
-                        pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-              ),
-              pw.Center(
-                child: pw.Text(frase, style: const pw.TextStyle(fontSize: 12)),
-              ),
-              pw.SizedBox(height: 10),
-              pw.Divider(),
-              ...produtosBox!.values.map((p) => pw.Text(
-                  "${p.quantidade}x ${p.nome} - R\$ ${(p.preco * p.quantidade).toStringAsFixed(2)}")),
-              pw.Divider(),
-              pw.Text(
-                "Total: R\$ ${produtosBox?.values.fold(0.0, (sum, p) => sum + p.preco * p.quantidade).toStringAsFixed(2)}",
-                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
-              ),
-              pw.SizedBox(height: 10),
-              pw.Text("Emitido em: ${DateTime.now()}",
-                  style: const pw.TextStyle(fontSize: 10)),
-            ],
-          );
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(onLayout: (format) => pdf.save());
-  }
-
-  Future<void> salvarPNG() async {
-  try {
-    final boundary = receiptKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-    if (boundary == null) return;
-
-    // 1. Aguarda se houver necessidade de pintura
-    if (boundary.debugNeedsPaint) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      return salvarPNG();
-    }
-
-    // 2. Converte o widget em imagem PNG
-    ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-    ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    
-    if (byteData != null) {
-      Uint8List pngBytes = byteData.buffer.asUint8List();
-
-      // 3. Cria um arquivo temporário para poder compartilhar/salvar
-      final directory = await getTemporaryDirectory();
-      final imagePath = '${directory.path}/recibo_${widget.listaNome}.png';
-      final imageFile = File(imagePath);
-      await imageFile.writeAsBytes(pngBytes);
-
-      // 4. Abre o menu do sistema (Salvar na Galeria, WhatsApp, Drive, etc)
-      await Share.shareXFiles(
-        [XFile(imagePath)],
-        text: 'Recibo da lista: ${widget.listaNome}',
-      );
-    }
-  } catch (e) {
-    debugPrint("Erro ao salvar imagem: $e");
-  }
-}
-
-  void adicionarLista() async {
-    String novaLista = '';
-    await showDialog(
-      context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Nova Lista"),
-        content: TextField(
-          decoration: const InputDecoration(labelText: "Nome da lista"),
-          onChanged: (value) => novaLista = value,
+        title: Text(produto == null ? 'Adicionar Produto' : 'Editar Produto'),
+        content: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Buscar por código de barras'),
+                  onPressed: () async {
+                    final codigo = await Navigator.push<String?>(
+                      context,
+                      MaterialPageRoute(builder: (_) => ScannerScreen()),
+                    );
+
+                    if (codigo == null || codigo.isEmpty) return;
+
+                    final produtoEncontrado = buscarProdutoPorCodigo(codigo);
+
+                    if (produtoEncontrado != null) {
+                      setState(() {
+                        nome = produtoEncontrado.nome;
+                        quantidade = 1;
+                        preco = produtoEncontrado.preco;
+                        codigoLido = codigo;
+                      });
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Produto encontrado: ${produtoEncontrado.nome}',
+                          ),
+                        ),
+                      );
+                    } else {
+                      codigoLido = codigo;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Produto não encontrado. Informe o nome manualmente.',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                TextFormField(
+                  initialValue: nome,
+                  decoration: const InputDecoration(labelText: 'Nome'),
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Informe o nome' : null,
+                  onSaved: (v) => nome = v!,
+                ),
+                TextFormField(
+                  initialValue: quantidade.toString(),
+                  decoration: const InputDecoration(labelText: 'Quantidade'),
+                  keyboardType: TextInputType.number,
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Informe a quantidade' : null,
+                  onSaved: (v) =>
+                      quantidade = int.tryParse(v!) ?? 1,
+                ),
+                CampoPreco(
+                  valorInicial: produto?.preco,
+                  onSaved: (v) => preco = v,
+                ),
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () {
-              if (novaLista.isNotEmpty) {
-                Hive.box<String>('listas').add(novaLista);
-                Hive.openBox<Produto>('produtos_$novaLista');
-                setState(() {
-                  listaAtual = novaLista;
-                });
+              if (!_formKey.currentState!.validate()) return;
+              _formKey.currentState!.save();
+
+              if (produto == null) {
+                produtosBox!.add(
+                  Produto(
+                    nome: nome,
+                    quantidade: quantidade,
+                    preco: preco,
+                    marcas: [],
+                  ),
+                );
+              } else {
+                produto
+                  ..nome = nome
+                  ..quantidade = quantidade
+                  ..preco = preco;
+                produto.save();
               }
+
               Navigator.pop(context);
             },
-            child: const Text("Adicionar"),
+            child: const Text('Salvar'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancelar"),
+            child: const Text('Cancelar'),
           ),
         ],
       ),
     );
   }
+
+  void limparLista() async {
+    await produtosBox?.clear();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Lista limpa')),
+    );
+  }
+
+  /* ===================== PDF ===================== */
+
+  void gerarPDF() async {
+    final pdf = pw.Document();
+    final frase = frases[Random().nextInt(frases.length)];
+
+    pdf.addPage(
+      pw.Page(
+        build: (_) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Center(
+              child: pw.Text(
+                widget.listaNome,
+                style: pw.TextStyle(
+                    fontSize: 18, fontWeight: pw.FontWeight.bold),
+              ),
+            ),
+            pw.SizedBox(height: 5),
+            pw.Center(child: pw.Text(frase)),
+            pw.Divider(),
+            ...produtosBox!.values.map(
+              (p) => pw.Text(
+                '${p.quantidade}x ${p.nome} - R\$ ${(p.preco * p.quantidade).toStringAsFixed(2)}',
+              ),
+            ),
+            pw.Divider(),
+            pw.Text(
+              'Total: R\$ ${_total().toStringAsFixed(2)}',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (_) => pdf.save());
+  }
+
+  /* ===================== PNG ===================== */
+
+  Future<void> salvarPNG() async {
+    try {
+      final boundary =
+          receiptKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      final image = await boundary.toImage(pixelRatio: 3);
+      final byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+
+      if (byteData == null) return;
+
+      final bytes = byteData.buffer.asUint8List();
+      final dir = await getTemporaryDirectory();
+      final file =
+          File('${dir.path}/recibo_${widget.listaNome}.png');
+
+      await file.writeAsBytes(bytes);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Recibo da lista ${widget.listaNome}',
+      );
+    } catch (e) {
+      debugPrint('Erro ao salvar PNG: $e');
+    }
+  }
+
+  double _total() {
+    return produtosBox!.values.fold(
+      0,
+      (sum, p) => sum + p.preco * p.quantidade,
+    );
+  }
+
+  /* ===================== UI ===================== */
 
   @override
   Widget build(BuildContext context) {
@@ -330,14 +298,9 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
       );
     }
 
-    double total = produtosBox!.values.fold(
-      0.0,
-      (sum, p) => sum + p.preco * p.quantidade,
-    );
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(listaAtual ?? 'Lista de Compras'),
+        title: Text(widget.listaNome),
         backgroundColor: Colors.pinkAccent.shade100,
         actions: [
           IconButton(
@@ -350,7 +313,7 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
           ),
           IconButton(
             icon: const Icon(Icons.delete_forever),
-            onPressed: _confirmarLimpeza,
+            onPressed: limparLista,
           ),
         ],
       ),
@@ -358,72 +321,65 @@ class _ListaComprasPageState extends State<ListaComprasPage> {
         children: [
           ValueListenableBuilder(
             valueListenable: produtosBox!.listenable(),
-            builder: (context, Box<Produto> box, _) {
+            builder: (_, Box<Produto> box, __) {
               if (box.isEmpty) {
-                return const Center(child: Text('Nenhum produto adicionado.'));
+                return const Center(
+                  child: Text('Nenhum produto adicionado'),
+                );
               }
+
               return ListView.builder(
-                physics: const BouncingScrollPhysics(),
                 itemCount: box.length,
-                itemBuilder: (context, index) {
-                  final produto = box.getAt(index)!;
+                itemBuilder: (_, i) {
+                  final produto = box.getAt(i)!;
                   return Dismissible(
-                    key: Key(produto.nome + index.toString()),
-                    background: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.only(left: 20),
-                        child: const Icon(Icons.delete, color: Colors.white)),
-                    secondaryBackground: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        child: const Icon(Icons.delete, color: Colors.white)),
-                    onDismissed: (_) {
-                      box.deleteAt(index);
-                      setState(() {});
-                    },
+                    key: Key('${produto.nome}-$i'),
+                    background: Container(color: Colors.red),
+                    onDismissed: (_) => produto.delete(),
                     child: ListTile(
                       title: Text(produto.nome),
                       subtitle: Text(
-                          "${produto.quantidade}un x  R\$ ${produto.preco.toStringAsFixed(2)}"),
-                      onTap: () => adicionarProduto(produto),
-                      trailing: Text("Clique para editar"),
+                        '${produto.quantidade}x R\$ ${produto.preco.toStringAsFixed(2)}',
+                      ),
+                      trailing: Text(
+                        'R\$ ${(produto.preco * produto.quantidade).toStringAsFixed(2)}',
+                      ),
+                      onTap: () => adicionarOuEditarProduto(produto),
                     ),
                   );
                 },
               );
             },
           ),
+
+          /// Recibo invisível para PNG
           Transform.translate(
-            offset: const Offset(-1000, -1000),
-            child: SizedBox(
-              width: 300,
-              child: SingleChildScrollView( 
-                child: buildReceiptUI(widget.listaNome, produtosBox!.values.toList()),
+            offset: const Offset(-2000, -2000),
+            child: RepaintBoundary(
+              key: receiptKey,
+              child: buildReceiptUI(
+                widget.listaNome,
+                produtosBox!.values.toList(),
               ),
             ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => adicionarProduto(),
-        splashColor: Colors.pink,
         backgroundColor: Colors.pinkAccent.shade100,
-        child: const Icon(
-          Icons.add,
-          color: Colors.black
-        ),
+        onPressed: () => adicionarOuEditarProduto(),
+        child: const Icon(Icons.add, color: Colors.black),
       ),
       bottomNavigationBar: BottomAppBar(
         color: Colors.pinkAccent.shade100,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Text(
-            'Total: R\$ ${total.toStringAsFixed(2)}',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold),
+            'Total: R\$ ${_total().toStringAsFixed(2)}',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
